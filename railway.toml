@@ -1,0 +1,15 @@
+# railway.toml — Unified deployment: backend serves frontend static files
+# Railway docs: https://docs.railway.app/reference/config-as-code
+
+[build]
+# 1. Install frontend deps and build the React app into frontend/dist
+# 2. Install backend deps
+buildCommand = "npm run build && cd backend && npm install --omit=dev"
+
+[deploy]
+# Start the Express backend (it serves the built frontend from ../frontend/dist)
+startCommand = "cd backend && node server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

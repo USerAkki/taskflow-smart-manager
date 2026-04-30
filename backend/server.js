@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const seedDemoData = require('./utils/seedDemoData');
@@ -30,10 +31,32 @@ app.use('/api/projects',  require('./routes/projects'));
 app.use('/api/tasks',     require('./routes/tasks'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
-// ── 404 handler — catches any unmatched route ─────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ message: `Route ${req.method} ${req.path} not found` });
-});
+// ── Serve built frontend (production) ────────────────────────────────────────
+// The frontend dist is at ../frontend/dist relative to this file.
+// In development this folder won't exist yet — that's fine, the block is skipped.
+const FRONTEND_DIST = path.join(__dirname, '../frontend/dist');
+try {
+  const fs = require('fs');
+  if (fs.existsSync(FRONTEND_DIST)) {
+    // Serve static assets (JS, CSS, images …)
+    app.use(express.static(FRONTEND_DIST));
+
+    // SPA catch-all — any non-API route gets index.html so React Router handles it
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
+    });
+    console.log('[Server] Serving frontend static files from', FRONTEND_DIST);
+  } else {
+    // No dist yet (local dev) — keep the JSON 404 handler instead
+    app.use((req, res) => {
+      res.status(404).json({ message: `Route ${req.method} ${req.path} not found` });
+    });
+  }
+} catch {
+  app.use((req, res) => {
+    res.status(404).json({ message: `Route ${req.method} ${req.path} not found` });
+  });
+}
 
 // ── Global error handler — catches any thrown errors from route handlers ───────
 // Must have 4 params so Express recognises it as an error handler
