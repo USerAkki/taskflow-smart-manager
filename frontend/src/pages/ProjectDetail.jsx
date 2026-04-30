@@ -19,7 +19,9 @@ function StatusBadge({ status }) {
   const map = {
     'todo': 'status-todo', 'in-progress': 'status-in-progress', 'done': 'status-done'
   }
-  return <span className={map[status]}>{status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}</span>
+  // Null guard: status can be undefined if task data is incomplete
+  if (!status) return <span className="status-todo">Unknown</span>
+  return <span className={map[status] || 'status-todo'}>{status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}</span>
 }
 
 function TaskCard({ task, onStatusChange, onDelete, isAdmin }) {
@@ -262,8 +264,11 @@ export default function ProjectDetail() {
       isAdmin ? api.get('/auth/users') : Promise.resolve({ data: [] })
     ]).then(([proj, taskRes, usersRes]) => {
       setProject(proj.data)
-      setTasks(taskRes.data)
-      setAllUsers(usersRes.data)
+      setTasks(Array.isArray(taskRes.data) ? taskRes.data : [])
+      setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : [])
+    }).catch(err => {
+      console.error('[ProjectDetail] Failed to load:', err.message)
+      // project stays null → renders "Project not found" below
     }).finally(() => setLoading(false))
   }, [id])
 

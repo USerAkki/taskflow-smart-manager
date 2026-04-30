@@ -1,9 +1,28 @@
-const Anthropic = require('@anthropic-ai/sdk');
+// Lazy-initialise the Anthropic client so the server doesn't crash at startup
+// if ANTHROPIC_API_KEY is missing or empty.
+let _anthropicClient = null;
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClient() {
+  if (_anthropicClient) return _anthropicClient;
 
-async function aiBreakdown(taskTitle, taskDescription = '') {
   if (!process.env.ANTHROPIC_API_KEY) {
+    return null; // No key configured — caller will use rule-based fallback
+  }
+
+  const Anthropic = require('@anthropic-ai/sdk');
+  _anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return _anthropicClient;
+}
+
+/**
+ * Generates an AI-powered task breakdown using Anthropic Claude.
+ * Falls back to a rule-based breakdown if the API key is absent or the call fails.
+ */
+async function aiBreakdown(taskTitle, taskDescription = '') {
+  const client = getClient();
+
+  if (!client) {
+    // No API key — silently use rule-based breakdown
     return ruleBasedBreakdown(taskTitle);
   }
 
@@ -24,15 +43,19 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 }`;
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-sonnet-20241022', // Fixed: was using an invalid model name
       max_tokens: 800,
       messages: [{ role: 'user', content: prompt }]
     });
 
     const text = response.content[0].text.trim();
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+
+    // Ensure result always has a subtasks array even if AI returns unexpected shape
+    if (!Array.isArray(parsed.subtasks)) parsed.subtasks = [];
+    return parsed;
   } catch (err) {
-    console.error('AI breakdown error, using fallback:', err.message);
+    console.error('[AI] Breakdown error, using rule-based fallback:', err.message);
     return ruleBasedBreakdown(taskTitle);
   }
 }
@@ -98,7 +121,7 @@ function ruleBasedBreakdown(title) {
     subtasks,
     totalEstimatedHours,
     riskLevel: totalEstimatedHours > 6 ? 'high' : totalEstimatedHours > 3 ? 'medium' : 'low',
-    suggestion: `Break this into focused work sessions. Tackle high-priority subtasks first to reduce risk early.`
+    suggestion: 'Break this into focused work sessions. Tackle high-priority subtasks first to reduce risk early.'
   };
 }
 

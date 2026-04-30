@@ -13,20 +13,27 @@ function PriorityBadge({ label }) {
 
 function StatusBadge({ status }) {
   const map = { 'todo': 'status-todo', 'in-progress': 'status-in-progress', 'done': 'status-done' }
+  // Null guard: status can be undefined if task data is incomplete
+  if (!status) return <span className="status-todo">Unknown</span>
   const label = status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)
-  return <span className={map[status]}>{label}</span>
+  return <span className={map[status] || 'status-todo'}>{label}</span>
 }
 
 export default function Tasks() {
   const { user } = useAuth()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [filters, setFilters] = useState({ status: 'all', priority: 'all' })
   const [updating, setUpdating] = useState(null)
 
   useEffect(() => {
     api.get('/tasks')
-      .then(res => setTasks(res.data))
+      .then(res => setTasks(Array.isArray(res.data) ? res.data : []))
+      .catch(err => {
+        console.error('[Tasks] Failed to load:', err.message)
+        setError('Failed to load tasks. Please try refreshing.')
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -49,6 +56,13 @@ export default function Tasks() {
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-7 h-7 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (error) return (
+    <div className="card text-center py-16">
+      <CheckSquare size={40} className="mx-auto text-red-400 mb-3" />
+      <p className="text-red-400 font-medium">{error}</p>
     </div>
   )
 

@@ -172,6 +172,7 @@ export default function Projects() {
   const { user } = useAuth()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
   const [members, setMembers] = useState([])
@@ -179,7 +180,11 @@ export default function Projects() {
 
   useEffect(() => {
     api.get('/projects')
-      .then(res => setProjects(res.data))
+      .then(res => setProjects(Array.isArray(res.data) ? res.data : []))
+      .catch(err => {
+        console.error('[Projects] Failed to load:', err.message)
+        setError('Failed to load projects. Please try refreshing.')
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -188,9 +193,11 @@ export default function Projects() {
     setShowMembers(true)
     setMembersLoading(true)
     try {
-      const { data } = await api.get(`/project/${projectId}/members`)
-      setMembers(data)
-    } catch {
+      // Fixed: was /project/ (missing 's') — caused 404
+      const { data } = await api.get(`/projects/${projectId}/members`)
+      setMembers(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('[Projects] Failed to load members:', err.message)
       setMembers([])
     } finally {
       setMembersLoading(false)
@@ -200,6 +207,13 @@ export default function Projects() {
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-7 h-7 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (error) return (
+    <div className="card text-center py-16">
+      <FolderKanban size={40} className="mx-auto text-red-400 mb-3" />
+      <p className="text-red-400 font-medium">{error}</p>
     </div>
   )
 

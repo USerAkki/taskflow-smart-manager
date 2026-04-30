@@ -95,22 +95,22 @@ export default function AIBreakdownModal({ onClose, onApply }) {
               {/* Metrics */}
               <div className="flex gap-3">
                 <div className="flex-1 bg-[#1a1f2e] rounded-xl px-4 py-3 text-center">
-                  <div className="text-white font-bold text-lg">{result.totalEstimatedHours}h</div>
+                  <div className="text-white font-bold text-lg">{result.totalEstimatedHours ?? '—'}h</div>
                   <div className="text-slate-500 text-xs mt-0.5">Est. Total</div>
                 </div>
-                <div className={`flex-1 rounded-xl px-4 py-3 text-center border ${RISK_COLORS[result.riskLevel]}`}>
-                  <div className="font-bold text-lg capitalize">{result.riskLevel}</div>
+                <div className={`flex-1 rounded-xl px-4 py-3 text-center border ${RISK_COLORS[result.riskLevel] || RISK_COLORS.low}`}>
+                  <div className="font-bold text-lg capitalize">{result.riskLevel || 'low'}</div>
                   <div className="text-xs opacity-70 mt-0.5">Risk Level</div>
                 </div>
                 <div className="flex-1 bg-[#1a1f2e] rounded-xl px-4 py-3 text-center">
-                  <div className="text-white font-bold text-lg">{result.subtasks.length}</div>
+                  <div className="text-white font-bold text-lg">{(result.subtasks || []).length}</div>
                   <div className="text-slate-500 text-xs mt-0.5">Subtasks</div>
                 </div>
               </div>
 
               {/* Subtasks */}
               <div className="bg-[#1a1f2e] rounded-xl divide-y divide-[#2d3748] overflow-hidden">
-                {result.subtasks.map((s, i) => (
+                {(result.subtasks || []).map((s, i) => (
                   <div key={i} className="flex items-center gap-3 px-4 py-3">
                     <div className="w-5 h-5 rounded-full border border-[#2d3748] flex items-center justify-center flex-shrink-0">
                       <span className="text-slate-600 text-[10px]">{i + 1}</span>
@@ -122,7 +122,7 @@ export default function AIBreakdownModal({ onClose, onApply }) {
                       <span className="text-slate-500 text-xs flex items-center gap-1">
                         <Clock size={11} />{s.estimatedHours}h
                       </span>
-                      {PRIORITY_ICON[s.priority]}
+                      {PRIORITY_ICON[s.priority] || PRIORITY_ICON.low}
                     </div>
                   </div>
                 ))}

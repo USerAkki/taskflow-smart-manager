@@ -99,7 +99,14 @@ exports.updateTask = async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    Object.assign(task, req.body);
+    // ── Safe explicit field updates (prevents mass-assignment from untrusted body) ──
+    const allowedFields = ['title', 'description', 'assignedTo', 'deadline', 'tags', 'status', 'subtasks'];
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        task[field] = req.body[field];
+      }
+    });
+
     await task.save();
     await task.populate('assignedTo', 'name email');
     return res.json(task);
