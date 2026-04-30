@@ -75,6 +75,11 @@ exports.getInsights = async (req, res) => {
     const totalProjects = req.user.role === 'admin' ? await Project.countDocuments() : null;
     const totalUsers = req.user.role === 'admin' ? await User.countDocuments() : null;
 
+    const velocity = (doneTasks * 10) + (doneTasks * 5); // simplified onTimeTasks to doneTasks
+    const overduePenalty = overdueTasks.length * 15;
+    const criticalPenalty = criticalTasks.length * 20;
+    const productivityScore = Math.max(0, velocity - overduePenalty - criticalPenalty);
+
     return res.json({
       summary: {
         totalTasks,
@@ -85,7 +90,13 @@ exports.getInsights = async (req, res) => {
         totalProjects,
         totalUsers,
         overdueCount: overdueTasks.length,
-        criticalCount: criticalTasks.length
+        criticalCount: criticalTasks.length,
+        score: productivityScore,
+        breakdown: {
+          velocity,
+          overduePenalty,
+          criticalPenalty
+        }
       },
       overdueTasks: overdueTasks.slice(0, 10),
       criticalTasks: criticalTasks.slice(0, 10),
